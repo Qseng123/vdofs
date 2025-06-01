@@ -161,11 +161,11 @@ function Kampfsimulator() {
     };
 
     return (
-        <div className="p-4 max-w-6xl mx-auto">
+        <div className="p-4 max-w-6xl mx-auto text-white">
             <h1 className="text-2xl font-bold text-center mb-6">Kampfsimulator</h1>
             <div className="grid md:grid-cols-2 gap-6">
                 {["Angreifer", "Verteidiger"].map((role, i) => (
-                    <div key={role} className="border p-4 rounded shadow bg-white">
+                    <div key={role} className="border p-4 rounded shadow bg-gray-800">
                         <h2 className="text-xl font-semibold mb-4">{role}</h2>
                         {Object.keys(units).map((unit) => (
                             <div key={unit} className="flex justify-between items-center mb-2">
@@ -177,23 +177,23 @@ function Kampfsimulator() {
                                     onChange={(e) =>
                                         handleChange(i === 0 ? "attacker" : "defender", unit, parseInt(e.target.value) || 0)
                                     }
-                                    className="w-20 border px-2 py-1 rounded"
+                                    className="w-20 bg-gray-700 text-white border border-gray-600 px-2 py-1 rounded"
                                 />
                             </div>
                         ))}
                     </div>
                 ))}
             </div>
-            <div className="mt-8 p-4 bg-gray-50 border rounded shadow">
+            <div className="mt-8 p-4 bg-gray-800 border border-gray-700 rounded shadow">
                 <h3 className="text-lg font-bold mb-2">Ergebnisse</h3>
                 <p>Angreifer Angriff: {attacker.totalAttack.toFixed(0)}</p>
                 <p>Angreifer Verteidigung: {attacker.totalDefense.toFixed(0)}</p>
                 <p>Angreifer Leben: {attacker.totalHp.toFixed(0)}</p>
-                <hr className="my-2" />
+                <hr className="my-2 border-gray-600" />
                 <p>Verteidiger Angriff: {defender.totalAttack.toFixed(0)}</p>
                 <p>Verteidiger Verteidigung: {defender.totalDefense.toFixed(0)}</p>
                 <p>Verteidiger Leben: {defender.totalHp.toFixed(0)}</p>
-                <hr className="my-2" />
+                <hr className="my-2 border-gray-600" />
                 <p className="font-bold">Gewinner: {determineWinner()}</p>
             </div>
         </div>
