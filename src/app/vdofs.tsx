@@ -152,6 +152,14 @@ function Kampfsimulator() {
         setter({ ...state, [unit]: value });
     };
 
+    const determineWinner = () => {
+        const attackScore = attacker.totalAttack - defender.totalDefense;
+        const defenseScore = defender.totalAttack - attacker.totalDefense;
+        if (attackScore > defenseScore) return "Angreifer";
+        if (defenseScore > attackScore) return "Verteidiger";
+        return "Unentschieden";
+    };
+
     return (
         <div className="p-4 max-w-6xl mx-auto">
             <h1 className="text-2xl font-bold text-center mb-6">Kampfsimulator</h1>
@@ -186,9 +194,7 @@ function Kampfsimulator() {
                 <p>Verteidiger Verteidigung: {defender.totalDefense.toFixed(0)}</p>
                 <p>Verteidiger Leben: {defender.totalHp.toFixed(0)}</p>
                 <hr className="my-2" />
-                <p className="font-bold">
-                    Gewinner: {attacker.totalAttack > defender.totalDefense ? "Angreifer" : "Verteidiger"}
-                </p>
+                <p className="font-bold">Gewinner: {determineWinner()}</p>
             </div>
         </div>
     );
