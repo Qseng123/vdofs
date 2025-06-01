@@ -206,7 +206,7 @@ function Kampfsimulator() {
                         ))}
                     </div>
                 ))
-      </div>
+                }</div>
 
             <div className="mt-8 p-4 bg-gray-800 border border-gray-700 rounded shadow">
                 <h3 className="text-lg font-bold mb-2">Ergebnisse</h3>
