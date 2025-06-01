@@ -125,7 +125,7 @@ class Army {
             if (hp) this.totalHp *= 1 + hp / 100;
         }
 
-        if (this.input.isDefender && this.input.wallLevel) {
+        if (this.input.isDefender && this.input.wallLevel !== undefined) {
             const wallReduction = 1 - 0.3 * this.input.wallLevel;
             this.totalHp *= wallReduction;
         }
@@ -133,7 +133,18 @@ class Army {
 }
 
 function Kampfsimulator() {
-    return <div className="text-white">Demnächst hier: überarbeitete Version</div>;
+    const [showUI, setShowUI] = useState(false);
+    return (
+        <div className="text-white p-4">
+            <button
+                onClick={() => setShowUI(true)}
+                className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-800"
+            >
+                Kampfsimulator öffnen
+            </button>
+            {showUI && <div className="mt-4">Hier kommt die Benutzeroberfläche hin.</div>}
+        </div>
+    );
 }
 
 export default Kampfsimulator;
