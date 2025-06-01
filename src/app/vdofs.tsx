@@ -110,27 +110,24 @@ class Army {
             this.totalHp += unit.hp * value;
         });
 
-        if (this.input.hero) {
-            const { attack, defense, hp } = this.input.hero.bonuses;
-            if (attack) this.totalAttack *= 1 + (attack * this.input.hero.level) / 100;
-            if (defense) this.totalDefense *= 1 + (defense * this.input.hero.level) / 100;
-            if (hp) this.totalHp *= 1 + (hp * this.input.hero.level) / 100;
-        }
-
-        this.input.shrine?.forEach((s) => {
-            if (s.type === "earth") this.applyBonus("attack", 2);
-            if (s.type === "fire") this.applyBonus("defense", 3);
-            if (s.type === "shadow") this.applyBonus("hp", 15);
-        });
-
         Object.entries(this.input.units).forEach(([key]) => {
             const unit = units[key];
             if (unit?.special) unit.special(this);
         });
 
-        if (this.input.isDefender && this.input.wallLevel) {
-            const reduction = 1 - 0.3 * this.input.wallLevel;
-            this.totalHp *= reduction;
+        if (this.input.shrine) {
+            this.input.shrine.forEach((s) => {
+                if (s.type === "earth") this.applyBonus("attack", 2);
+                if (s.type === "fire") this.applyBonus("defense", 3);
+                if (s.type === "shadow") this.applyBonus("hp", 15);
+            });
+        }
+
+        if (this.input.hero) {
+            const { attack, defense, hp } = this.input.hero.bonuses;
+            if (attack) this.totalAttack *= 1 + (attack * this.input.hero.level) / 100;
+            if (defense) this.totalDefense *= 1 + (defense * this.input.hero.level) / 100;
+            if (hp) this.totalHp *= 1 + (hp * this.input.hero.level) / 100;
         }
     }
 }
@@ -138,9 +135,12 @@ class Army {
 function Kampfsimulator() {
     const [attackerUnits, setAttackerUnits] = useState<{ [key: string]: number }>({});
     const [defenderUnits, setDefenderUnits] = useState<{ [key: string]: number }>({});
+    const [wallLevel, setWallLevel] = useState<0 | 1 | 2 | 3>(3);
+    const [heroLevel, setHeroLevel] = useState(0);
+    const [heroBonuses, setHeroBonuses] = useState({ attack: 0, defense: 0, hp: 0 });
 
-    const attacker = new Army({ name: "Angreifer", units: attackerUnits });
-    const defender = new Army({ name: "Verteidiger", units: defenderUnits, isDefender: true, wallLevel: 3 });
+    const attacker = new Army({ name: "Angreifer", units: attackerUnits, hero: { name: "", level: heroLevel, bonuses: heroBonuses } });
+    const defender = new Army({ name: "Verteidiger", units: defenderUnits, isDefender: true, wallLevel: wallLevel });
 
     const handleChange = (
         side: "attacker" | "defender",
@@ -157,12 +157,35 @@ function Kampfsimulator() {
         const defenseScore = defender.totalAttack - attacker.totalDefense;
         if (attackScore > defenseScore) return "Angreifer";
         if (defenseScore > attackScore) return "Verteidiger";
-        return "Unentschieden";
+        return "Verteidiger";
     };
 
     return (
         <div className="p-4 max-w-6xl mx-auto text-white">
             <h1 className="text-2xl font-bold text-center mb-6">Kampfsimulator</h1>
+
+            <div className="mb-4">
+                <label className="block mb-2">Mauerstufe Verteidiger (0-3):</label>
+                <input
+                    type="number"
+                    min={0}
+                    max={3}
+                    value={wallLevel}
+                    onChange={(e) => setWallLevel(Number(e.target.value) as 0 | 1 | 2 | 3)}
+                    className="bg-gray-700 text-white border border-gray-600 px-2 py-1 rounded"
+                />
+            </div>
+
+            <div className="mb-4">
+                <label className="block mb-2">Held: Angriff / Verteidigung / Leben (%):</label>
+                <div className="flex gap-2">
+                    <input type="number" value={heroBonuses.attack} onChange={e => setHeroBonuses({ ...heroBonuses, attack: +e.target.value })} className="w-16 bg-gray-700 text-white border border-gray-600 px-2 py-1 rounded" />
+                    <input type="number" value={heroBonuses.defense} onChange={e => setHeroBonuses({ ...heroBonuses, defense: +e.target.value })} className="w-16 bg-gray-700 text-white border border-gray-600 px-2 py-1 rounded" />
+                    <input type="number" value={heroBonuses.hp} onChange={e => setHeroBonuses({ ...heroBonuses, hp: +e.target.value })} className="w-16 bg-gray-700 text-white border border-gray-600 px-2 py-1 rounded" />
+                    <input type="number" value={heroLevel} onChange={e => setHeroLevel(+e.target.value)} className="w-16 bg-gray-700 text-white border border-gray-600 px-2 py-1 rounded" placeholder="Lvl" />
+                </div>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-6">
                 {["Angreifer", "Verteidiger"].map((role, i) => (
                     <div key={role} className="border p-4 rounded shadow bg-gray-800">
@@ -182,8 +205,9 @@ function Kampfsimulator() {
                             </div>
                         ))}
                     </div>
-                ))}
-            </div>
+                ))
+      </div>
+
             <div className="mt-8 p-4 bg-gray-800 border border-gray-700 rounded shadow">
                 <h3 className="text-lg font-bold mb-2">Ergebnisse</h3>
                 <p>Angreifer Angriff: {attacker.totalAttack.toFixed(0)}</p>
