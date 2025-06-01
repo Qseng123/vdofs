@@ -15,7 +15,7 @@ interface ArmyInput {
     hero?: Hero;
     shrine?: Shrine[];
     items?: { [key: string]: number };
-    bloodLevel?: number; // 0 to 2 (0%, 1.5x, 2x etc)
+    bloodLevel?: number;
     isDefender?: boolean;
     wallLevel?: 0 | 1 | 2 | 3;
 }
@@ -42,9 +42,7 @@ const units: { [key: string]: Unit } = {
         defense: 60,
         hp: 400,
         name: "General",
-        special: (army: Army) => {
-            army.applyBonus("defense", 5);
-        },
+        special: (army: Army) => army.applyBonus("defense", 5),
     },
     Vampirkrieger: { attack: 9, defense: 18, hp: 300, name: "Vampirkrieger", type: "vampire" },
     Vampirmagier: { attack: 5, defense: 30, hp: 180, name: "Vampirmagier", type: "vampire" },
@@ -60,18 +58,14 @@ const units: { [key: string]: Unit } = {
         defense: 60,
         hp: 400,
         name: "Hauptmann",
-        special: (army: Army) => {
-            army.applyBonus("attack", 3);
-        },
+        special: (army: Army) => army.applyBonus("attack", 3),
     },
     Feldkoch: {
         attack: 5,
         defense: 10,
         hp: 1000,
         name: "Feldkoch",
-        special: (army: Army) => {
-            army.applyBonus("hp", 10);
-        },
+        special: (army: Army) => army.applyBonus("hp", 10),
     },
     Heiltrank: { attack: 0, defense: 0, hp: 150, name: "Heiltrank" },
     Stahlschwerter: { attack: 5, defense: 5, hp: 0, name: "Stahlschwerter" },
@@ -92,32 +86,28 @@ class Army {
     }
 
     applyBonus(type: "attack" | "defense" | "hp", amount: number) {
-        const entries = Object.entries(this.input.units);
-        entries.forEach(([key, value]) => {
+        Object.entries(this.input.units).forEach(([key, value]) => {
             const unit = units[key];
-            if (unit) {
-                if (type === "attack") this.totalAttack += value * amount;
-                if (type === "defense") this.totalDefense += value * amount;
-                if (type === "hp") this.totalHp += value * amount;
-            }
+            if (!unit) return;
+            if (type === "attack") this.totalAttack += value * amount;
+            if (type === "defense") this.totalDefense += value * amount;
+            if (type === "hp") this.totalHp += value * amount;
         });
     }
 
     calculateStats() {
-        const entries = Object.entries(this.input.units);
-        entries.forEach(([key, value]) => {
+        Object.entries(this.input.units).forEach(([key, value]) => {
             const unit = units[key];
-            if (unit) {
-                let atk = unit.attack;
-                let def = unit.defense;
-                if (unit.type === "vampire" && this.input.bloodLevel) {
-                    atk *= this.input.bloodLevel;
-                    def *= this.input.bloodLevel;
-                }
-                this.totalAttack += atk * value;
-                this.totalDefense += def * value;
-                this.totalHp += unit.hp * value;
+            if (!unit) return;
+            let atk = unit.attack;
+            let def = unit.defense;
+            if (unit.type === "vampire" && this.input.bloodLevel) {
+                atk *= this.input.bloodLevel;
+                def *= this.input.bloodLevel;
             }
+            this.totalAttack += atk * value;
+            this.totalDefense += def * value;
+            this.totalHp += unit.hp * value;
         });
 
         if (this.input.hero) {
@@ -128,83 +118,77 @@ class Army {
         }
 
         this.input.shrine?.forEach((s) => {
-            switch (s.type) {
-                case "earth":
-                    this.applyBonus("attack", 2);
-                    break;
-                case "fire":
-                    this.applyBonus("defense", 3);
-                    break;
-                case "shadow":
-                    this.applyBonus("hp", 15);
-                    break;
-            }
+            if (s.type === "earth") this.applyBonus("attack", 2);
+            if (s.type === "fire") this.applyBonus("defense", 3);
+            if (s.type === "shadow") this.applyBonus("hp", 15);
         });
 
-        entries.forEach(([key]) => {
+        Object.entries(this.input.units).forEach(([key]) => {
             const unit = units[key];
-            if (unit?.special) {
-                unit.special(this);
-            }
+            if (unit?.special) unit.special(this);
         });
+
+        if (this.input.isDefender && this.input.wallLevel) {
+            const reduction = 1 - 0.3 * this.input.wallLevel;
+            this.totalHp *= reduction;
+        }
     }
 }
 
 function Kampfsimulator() {
-    const [log, setLog] = useState<string[]>([]);
+    const [attackerUnits, setAttackerUnits] = useState<{ [key: string]: number }>({});
+    const [defenderUnits, setDefenderUnits] = useState<{ [key: string]: number }>({});
 
-    const startFight = () => {
-        const angreifer = new Army({
-            name: "Angreifer",
-            units: {
-                Vampirkrieger: 2,
-                Vampirmagier: 300,
-                Vampirlords: 725,
-                Söldner: 125,
-                Werwölfe: 130,
-                Feldkoch: 1,
-                Heiltrank: 205,
-            },
-            hero: { name: "Valnar", level: 6, bonuses: { attack: 1, defense: 1 } },
-            bloodLevel: 1.5,
-        });
+    const attacker = new Army({ name: "Angreifer", units: attackerUnits });
+    const defender = new Army({ name: "Verteidiger", units: defenderUnits, isDefender: true, wallLevel: 3 });
 
-        const verteidiger = new Army({
-            name: "Verteidiger",
-            units: {
-                Elraslehrling: 198,
-                Elrasmagier: 96,
-                Schattengeister: 90,
-                Heiltrank: 384,
-                Stahlschwerter: 277,
-                Skelette: 44,
-            },
-            hero: { name: "Morlon", level: 3, bonuses: { defense: 1, hp: 1 } },
-            isDefender: true,
-            wallLevel: 3,
-        });
-
-        const logOutput = [
-            `${angreifer.input.name} Angriff: ${angreifer.totalAttack.toFixed(0)}, Verteidigung: ${angreifer.totalDefense.toFixed(0)}, Leben: ${angreifer.totalHp.toFixed(0)}`,
-            `${verteidiger.input.name} Angriff: ${verteidiger.totalAttack.toFixed(0)}, Verteidigung: ${verteidiger.totalDefense.toFixed(0)}, Leben: ${verteidiger.totalHp.toFixed(0)}`,
-            `Gewinner: ${angreifer.totalAttack > verteidiger.totalDefense ? "Angreifer" : "Verteidiger"}`,
-        ];
-        setLog(logOutput);
+    const handleChange = (
+        side: "attacker" | "defender",
+        unit: string,
+        value: number
+    ) => {
+        const setter = side === "attacker" ? setAttackerUnits : setDefenderUnits;
+        const state = side === "attacker" ? attackerUnits : defenderUnits;
+        setter({ ...state, [unit]: value });
     };
 
     return (
-        <div className="p-4">
-            <h1 className="text-xl font-bold mb-4">Kampfsimulator</h1>
-            <button
-                className="bg-blue-500 text-white px-4 py-2 rounded"
-                onClick={startFight}
-            >
-                Kampf starten
-            </button>
-            <div className="mt-4">
-                {log.map((line, i) => (
-                    <p key={i}>{line}</p>
+        <div className="p-4 max-w-6xl mx-auto">
+            <h1 className="text-2xl font-bold text-center mb-6">Kampfsimulator</h1>
+            <div className="grid md:grid-cols-2 gap-6">
+                {["Angreifer", "Verteidiger"].map((role, i) => (
+                    <div key={role} className="border p-4 rounded shadow bg-white">
+                        <h2 className="text-xl font-semibold mb-4">{role}</h2>
+                        {Object.keys(units).map((unit) => (
+                            <div key={unit} className="flex justify-between items-center mb-2">
+                                <label className="w-2/3">{unit}</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    value={i === 0 ? attackerUnits[unit] || 0 : defenderUnits[unit] || 0}
+                                    onChange={(e) =>
+                                        handleChange(i === 0 ? "attacker" : "defender", unit, parseInt(e.target.value) || 0)
+                                    }
+                                    className="w-20 border px-2 py-1 rounded"
+                                />
+                            </div>
+                        ))}
+                    </div>
                 ))}
+            </div>
+            <div className="mt-8 p-4 bg-gray-50 border rounded shadow">
+                <h3 className="text-lg font-bold mb-2">Ergebnisse</h3>
+                <p>Angreifer Angriff: {attacker.totalAttack.toFixed(0)}</p>
+                <p>Angreifer Verteidigung: {attacker.totalDefense.toFixed(0)}</p>
+                <p>Angreifer Leben: {attacker.totalHp.toFixed(0)}</p>
+                <hr className="my-2" />
+                <p>Verteidiger Angriff: {defender.totalAttack.toFixed(0)}</p>
+                <p>Verteidiger Verteidigung: {defender.totalDefense.toFixed(0)}</p>
+                <p>Verteidiger Leben: {defender.totalHp.toFixed(0)}</p>
+                <hr className="my-2" />
+                <p className="font-bold">
+                    Gewinner: {attacker.totalAttack > defender.totalDefense ? "Angreifer" : "Verteidiger"}
+                </p>
             </div>
         </div>
     );
